@@ -44,7 +44,7 @@
     </header>
 
     <main>
-      <div class="container mt-5 col-6 d-flex align-items-center justify-content-center" style="color: white">
+      <div id="legend-container" class="container mt-5 col-6 d-flex align-items-center justify-content-center" style="color: white">
           <span class="legend">
             <button class="btn btn-secondary btn-square"></button>
             Available
@@ -60,19 +60,20 @@
       </div>
 
       <div id="seats-container" class="container col-5 mt-5 align-items-center justify-content-center" style="color: white">
-        <div class="row"></div>
-        <div class="row"></div>
-        <div class="row"></div>
-        <div class="row"></div>
-        <div class="row"></div>
-        <div class="row"></div>
+        <div id="1" class="row"></div>
+        <div id="2" class="row"></div>
+        <div id="3" class="row"></div>
+        <div id="4" class="row"></div>
+        <div id="5" class="row"></div>
+        <div id="6" class="row"></div>
       </div>
     </main>
 
     <footer>
       <div class="container mt-5 col-6 d-flex align-items-center justify-content-center" id="selection-details" style="color: white"></div>
       <div class="container mt-5 col-6 d-flex align-items-center justify-content-center">
-        <button type="button" class="btn btn-success" onclick="buy()">Buy</button>
+        <button type="button" class="btn mx-5 btn-success buy-button" onclick="buy()">Buy</button>
+        <button type="button" class="btn mx-3 btn-success refund-button" onclick="createRefundEnvironment(this)">Refund</button>
       </div>
     </footer>
     
@@ -84,6 +85,7 @@
         {
           this.name = name;
           this.price = price;
+          this.bookings = [];
         }
 
         let ToyStory = new Movie("Toy Story", 5);
@@ -98,6 +100,16 @@
 
         let dropdownMenu = document.getElementById('movie-dropdown');
 
+
+        let buyButton = document.querySelector('.buy-button');
+        let refundButton = document.querySelector('.refund-button');
+        let cancelRefundButton = refundButton.cloneNode(true);
+        cancelRefundButton.classList.remove('btn-danger');
+        cancelRefundButton.classList.add('btn-success');
+        cancelRefundButton.textContent = "Cancel Refund";
+        cancelRefundButton.setAttribute('onclick', 'cancelRefund(this)');
+
+
         for (let i = 0; i < movies.length; i++)
         {
           let liTag = document.createElement('li');
@@ -107,21 +119,92 @@
         }
 
         let currentMovie;
+        let selectedSeats = 0;
       
         function updateMovie(currElement)
         {
           let content = currElement.textContent;
-          console.log(content);
-          var regex = new RegExp(content);
-          console.log(regex);
-          currentMovie = movies.find(function(movie) {
-              return regex.test(movie.name);
-          })
-          console.log(currentMovie);
+
           let listItem = currElement.parentNode;
           let parentList = listItem.parentNode;
           let displayNode = parentList.previousElementSibling;
-          displayNode.textContent = currElement.textContent;
+          let previousMovie = movies.find(function(movie) {
+              var cleanString1 = movie.name.replace(/[^a-zA-Z]/g, '');
+              var cleanString2 = displayNode.textContent.replace(/[^a-zA-Z]/g, '');
+              if (cleanString1 === cleanString2)
+              {
+                return movie;
+              }
+            })
+
+            if (previousMovie != undefined)
+            {
+              let soldSeats = document.querySelectorAll('.sold');
+
+            soldSeats.forEach(function(seat) {
+              let booking = {
+                row: Number(seat.parentElement.id),
+                column: Number(seat.getAttribute('seatcount'))
+              }
+              previousMovie.bookings.push(booking);
+            })
+
+
+            soldSeats.forEach(function(seat) {
+              seat.classList.remove('sold');
+            });
+            soldSeats.forEach(function(seat) {
+              seat.classList.remove('btn-light');
+            });
+            soldSeats.forEach(function(seat) {
+              seat.classList.add('btn-secondary');
+            });
+            soldSeats.forEach(function(seat){
+              seat.setAttribute('status', "available");
+            })
+          }
+
+          if (!(content == displayNode.textContent))
+          {
+            currentMovie = movies.find(function(movie) {
+              var cleanString1 = movie.name.replace(/[^a-zA-Z]/g, '');
+              var cleanString2 = content.replace(/[^a-zA-Z]/g, '');
+              if (cleanString1 === cleanString2)
+              {
+                return movie;
+              }
+            })
+
+            displayNode.textContent = currElement.textContent;
+
+            let seats = document.querySelectorAll('.seat');
+            seats.forEach(function(seat){
+            seat.classList.remove('sold');
+            seat.classList.remove('btn-light');
+            seat.classList.remove('selected');
+            seat.classList.add('btn-secondary');
+          })
+
+
+            let alreadySoldSeats = currentMovie.bookings;
+
+            if (alreadySoldSeats != undefined)
+            {
+              alreadySoldSeats.forEach(function(seat) {
+              let row = "" + seat.row;
+              let column = seat.column;
+
+              let div = document.getElementById(row);
+              let button = div.querySelectorAll('button:nth-child(' + column + ')');
+
+
+              button[0].classList.remove('btn-secondary');
+              button[0].classList.add('btn-light');
+              button[0].classList.add('sold');
+              button[0].setAttribute('status', 'unavailable');
+            })
+          }
+          }
         }
 
         let seatsContainer = document.getElementById('seats-container');
@@ -139,15 +222,21 @@
             seat.setAttribute("onclick", "updatePrice(this)");
             seat.setAttribute('status', 'available');
 
+            let seatCount = 1;
+
           for (let j = 0; j < 2; j++)
           {
             const Seat = seat.cloneNode(true);
+            Seat.setAttribute('seatcount', seatCount);
+            seatCount++;
             currentRow[0].appendChild(Seat);
           }
 
           for (let j = 0; j < 4; j++)
           {
             const Seat = seat.cloneNode(true);
+            Seat.setAttribute('seatcount', seatCount);
+            seatCount++;
             currentRow[0].appendChild(Seat);
 
           }
@@ -155,11 +244,13 @@
           for (let j = 0; j < 2; j++)
           {
             const Seat = seat.cloneNode(true);
+            Seat.setAttribute('seatcount', seatCount);
+            seatCount++;
             currentRow[0].appendChild(Seat);
           }
         }
 
-        let selectedSeats = 0;
+
 
         function updatePrice(currentSeat)
         {
@@ -170,6 +261,7 @@
           }
           else
           {
+            let footer = document.getElementById('selection-details');
             if (currentSeat.getAttribute("status") == "available")
             {
               selectedSeats++;
@@ -177,6 +269,11 @@
               currentSeat.classList.remove('btn-secondary');
               currentSeat.classList.add('btn-info');
               currentSeat.classList.add('selected');
+            }
+            else if (currentSeat.classList.contains('sold'))
+            {
+              alert("seat is sold");
+              return;
             }
             else
             {
@@ -186,23 +283,140 @@
               currentSeat.classList.add('btn-secondary');
               currentSeat.classList.remove('selected');
             }
-            let footer = document.getElementById('selection-details');
-            footer.textContent = "You have selected " + selectedSeats + " seats";
+            if (selectedSeats == 0)
+            {
+              buyButton.after(refundButton);
+              footer.textContent = "";
+              return;
+            }
+            else
+            {
+              refundButton.remove();
+            }
+            footer.textContent = "You have selected " + selectedSeats + " seats for $" + selectedSeats*currentMovie.price;
           }
         }
 
         function buy()
         {
-          console.log('buy called');
           let soldSeats = document.querySelectorAll('.selected');
+          if (soldSeats.length == 0)
+          {
+            alert("Please select seats to buy");
+            return;
+          }
           for (let i = 0; i < soldSeats.length; i++)
           {
             soldSeats[i].classList.remove('btn-info');
             soldSeats[i].classList.add('btn-light');
+            soldSeats[i].classList.add('sold');
+            soldSeats[i].classList.remove('selected');
           }
           let footer = document.getElementById('selection-details');
           footer.textContent = "";
           selectedSeats = 0;
+          buyButton.after(refundButton);
+        }
+
+        function createRefundEnvironment(refundButton)
+        {
+          refundButton.before(cancelRefundButton);
+          let occupiedSeats = document.querySelectorAll('.sold');
+          if (occupiedSeats.length == 0)
+          {
+            alert("no seats to refund");
+            return;
+          }
+ 
+          buyButton.remove();
+          alert("Select seats to refund");
+          refundButton.classList.remove('btn-success');
+          refundButton.classList.add('btn-danger');
+          let allSeats = document.querySelectorAll('.seat');
+          allSeats.forEach(function(seat) {
+            seat.setAttribute('onclick', 'checkRefund(this)');
+          })
+          refundButton.setAttribute('onclick', 'refundSeats()');
+        }
+
+        let quantityOfRefundSeats = 0;
+
+        function checkRefund(seat)
+        {
+          if (seat.classList.contains('sold') & !(seat.classList.contains('to-be-refunded')))
+          {
+            quantityOfRefundSeats++;
+            seat.classList.add('to-be-refunded');
+            seat.classList.remove('btn-light');
+            seat.classList.add('btn-danger');
+          }
+          else if (!seat.classList.contains('sold'))
+          {
+            alert("Seat is not sold");
+          }
+          else if (seat.classList.contains('sold') & (seat.classList.contains('to-be-refunded')))
+          {
+            quantityOfRefundSeats--;
+            seat.classList.remove('to-be-refunded');
+            seat.classList.add('btn-light');
+            seat.classList.remove('btn-danger');
+          }
+          let footer = document.getElementById('selection-details');
+          footer.textContent = "Refund Amount: $" + currentMovie.price*quantityOfRefundSeats;
+          if (quantityOfRefundSeats != 0)
+          {
+            cancelRefundButton.remove();
+          }
+          else if (quantityOfRefundSeats == 0)
+          {
+            refundButton.before(cancelRefundButton);
+          }
+        }
+
+        function refundSeats()
+        {
+          let currentMovieBookings = currentMovie.bookings;
+          let seatsToRefund = document.querySelectorAll('.to-be-refunded');
+          seatsToRefund.forEach(function(seat){
+            let row = Number(seat.parentElement.id);
+            let column = Number(seat.getAttribute('seatcount'));
+            let removalIndex = currentMovieBookings.forEach(function(booking, index){
+              if (booking.row == row && booking.column == column)
+              {
+                return index;
+              }
+            })
+            currentMovieBookings.splice(removalIndex);
+            seat.classList.remove('to-be-refunded');
+            seat.classList.remove('sold');
+            seat.classList.remove('btn-danger');
+            seat.classList.add('btn-secondary');
+            seat.setAttribute('status', 'available');
+          })
+          alert("Total Refund: $" + quantityOfRefundSeats*currentMovie.price);
+          quantityOfRefundSeats = 0;
+          refundButton.classList.remove('btn-danger');
+          refundButton.classList.add('btn-success');
+          refundButton.setAttribute('onclick', 'createRefundEnvironment(this)');
+          refundButton.before(buyButton);
+          let allSeats = document.querySelectorAll('.seat');
+          allSeats.forEach(function(seat) {
+            seat.setAttribute('onclick', 'updatePrice(this)');
+          })
+          cancelRefundButton.remove();
+        }
+
+        function cancelRefund(cancelRefundButton)
+        {
+          cancelRefundButton.remove();
+          refundButton.classList.remove('btn-danger');
+          refundButton.classList.add('btn-success');
+          refundButton.before(buyButton);
+          let allSeats = document.querySelectorAll('.seat');
+          allSeats.forEach(function(seat) {
+            seat.setAttribute('onclick', 'updatePrice(this)');
+          })
+          refundButton.setAttribute('onclick', 'createRefundEnvironment(this)');
         }
     </script>
 </body>
